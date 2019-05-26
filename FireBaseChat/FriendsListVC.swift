@@ -7,35 +7,36 @@
 //
 
 import UIKit
-
+import Firebase
 class FriendsListVC: UIViewController {
-
-
     @IBOutlet var tv: UITableView!
-    var messages = [JSQMessage]()
+    var messages = [friendListData]()
     override func viewDidLoad() {
         super.viewDidLoad()
         tv.delegate = self
         tv.dataSource = self
-        let query = Constants.refs.databaseusers
-        _ = query.observe(.childAdded, with: { [weak self] snapshot in
-            if  let data        = snapshot.value as? [String: String],
-                let id          = data["id"],
-                let name        = data["userName"]
-
-            {
-                if let message = JSQMessage(senderId: id, displayName: name, text: "text")
-                {
-                    self?.messages.append(message)
+        let ref = Constants.refs.databaseusers
+        // let query2 = ref2.queryOrdered(byChild: "reciverId").queryEqual(toValue: "123")
+           DispatchQueue.global(qos: .background).async {
+            ref.observe(.value, with: { (snapshot) in
+                for childSnapshot in snapshot.children {
+                    let c = childSnapshot as! DataSnapshot
+                    let dict = c.value as? [String : AnyObject]
+                    if let dict = dict
+                    {
+                        self.messages.append(friendListData(dic: dict))
+                         self.tv.reloadData()
+                    }
 
                 }
+            })
+            DispatchQueue.main.async {
+                self.tv.reloadData()
             }
-        })
-        // Do any additional setup after loading the view.
+        }
+
+
     }
-    
-
-
 }
 extension FriendsListVC :  UITableViewDelegate , UITableViewDataSource{
 
@@ -46,9 +47,18 @@ extension FriendsListVC :  UITableViewDelegate , UITableViewDataSource{
         return messages.count
     }
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(withIdentifier: "officialVacationCell", for: indexPath) as! UITableViewCell
-        cell.textLabel?.text = self.messages[indexPath.row].senderDisplayName
+        let cell = tableView.dequeueReusableCell(withIdentifier: "friendCell", for: indexPath) 
+        cell.textLabel?.text = self.messages[indexPath.row].name
         return cell;
     }
 
+}
+
+
+struct friendListData
+{
+    var name : String
+    init(dic : [String : AnyObject]) {
+        name = dic["userName"]! as! String
+    }
 }
